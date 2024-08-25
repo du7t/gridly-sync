@@ -11,7 +11,7 @@
 
 ## Introduction
 
-This Google Apps Script project uses Gridly REST API for running sync on Google Sheet <> Grid.
+This Google Apps Script project uses Gridly REST API for running sync from Google Sheet to Grid.
 
 New records are added and old are updated.
 
@@ -32,7 +32,12 @@ Sync is available through Google Sheets UI menu and can also be used in triggers
 - Done. You will see new Gridly menu with Sync command in Google Sheets UI. You can use it to run sync for current sheet
 - You can also [set up](https://developers.google.com/apps-script/guides/triggers/installable#manage_triggers_manually) trigger onEdit for `syncWithGridly` function
 
-## Contents
+## Script main logic
 
-...
+  1. Acquires document lock to prevent parallel sync executions.
+  2. Retrieves the active sheet's name.
+  3. Finds the corresponding Gridly connection ID using the sheet name.
+  4. Initiates the sync process to Gridly if a valid connection ID is found.
+  5. Sync process: sends a sync request to the Gridly API, gets syncID, and then checks the status of the sync by its ID.
+  6. Completes if status is succeeded, otherwise throws an error when failed or timeout.
 
