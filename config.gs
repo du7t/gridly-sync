@@ -3,7 +3,7 @@
  */
 const GRIDLY_API_CONFIG = {
     // Replace with your API Key
-    apiKey: 'gk_piQ1EwrZB7kMoO',
+    apiKey: 'your_api_key',
     apiBaseUrl: 'https://api.gridly.com',
 }
 
