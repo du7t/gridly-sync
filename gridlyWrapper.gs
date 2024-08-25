@@ -1,66 +1,22 @@
-// Configurations for Gridly API and integration
-const GRIDLY_API_CONFIG = {
-    apiKey: 'your_api_key', // Replace with your API Key
-    apiBaseUrl: 'https://eu-central-1.api.gridly.com',
-}
-
-const INTEGTATION_CONFIG = {
-    // You can get each created connection id from its url
-    // Example: https://app.gridly.com/integration/connectors/connection/1276
-    sheetNamesToGridConnectionIds: {
-        'Static Texts': '1276',
-        'Game Text': '1277',
-    },
-    lockTimeout: 10000  // Timeout for acquiring lock in ms
-}
-
-// Create Gridly menu
-function onOpen() {
-    const ui = SpreadsheetApp.getUi();
-    ui.createMenu('Gridly')
-        .addItem('Sync current sheet', 'syncWithGridly')
-        .addToUi();
-}
-
-// Triggered
-function syncWithGridly(e) {
-    // Use lock to ensure no parallel sync execution running
-    const lock = LockService.getDocumentLock();
-    if (lock.tryLock(INTEGTATION_CONFIG.lockTimeout)) {
-        sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-        sheetName = sheet.getName();
-
-        // Find the corresponding Connection ID by the sheet name
-        const connectionId = getConnectionId(sheetName);
-
-        if (connectionId) {
-            const gridlyWrapper = new GridlyWrapper(GRIDLY_API_CONFIG);
-
-            console.info(`Starting sync for sheet: ${sheetName}, connectionId: ${connectionId}`);
-            gridlyWrapper.sync(connectionId);
-        } else {
-            console.warn(`No connection ID found for the edited sheet: ${sheetName}`);
-        }
-
-        SpreadsheetApp.flush();
-        lock.releaseLock();
-    } else {
-        console.warn("Could not acquire lock. Another execution must be already running on this doc.");
-    }
-}
-
-function getConnectionId(sheetName) {
-    return INTEGTATION_CONFIG.sheetNamesToGridConnectionIds[sheetName] || null;
-}
-
-// Gridly API wrapper
-// Docs: https://www.gridly.com/docs/api/
+/**
+ * Gridly API wrapper
+ * Docs: https://www.gridly.com/docs/api/
+ */
 class GridlyWrapper {
+    /**
+     * @param {Object} config - The configuration object for Gridly API.
+     * @param {string} config.apiKey - The API key for authenticating requests to Gridly.
+     * @param {string} config.apiBaseUrl - The base URL of the Gridly API.
+     */
     constructor(config) {
         this.apiKey = config.apiKey;
         this.apiBaseUrl = config.apiBaseUrl;
     }
 
+    /**
+     * @param {string} method - The HTTP method to use for the request (e.g., 'get', 'post', 'delete').
+     * @returns {Object} An options object to be used with the HTTP request.
+     */
     _get_options(method) {
         return {
             'method': method,
@@ -70,6 +26,13 @@ class GridlyWrapper {
         }
     }
 
+    /**
+     * Initiates a synchronization process for a specified connection in Gridly.
+     * Sends a sync request to the Gridly API and then checks the status of the sync process.
+     *
+     * @param {string} connectionId - The ID of the connection to sync.
+     * @throws {Error} Throws an error if the sync request fails or if an error occurs during the process.
+     */
     sync(connectionId) {
         const url = `${this.apiBaseUrl}/workflow/v1/connector/connections/${connectionId}/sync`;
 
@@ -85,7 +48,14 @@ class GridlyWrapper {
             throw error;
         }
     }
-  
+
+    /**
+     * Monitors the status of a sync process until it succeeds or reaches the maximum number of checks.
+     * Checks the sync status at regular intervals and logs the status updates.
+     *
+     * @param {string} syncId - The ID of the sync process to monitor.
+     * @throws {Error} Throws an error if the sync process fails or times out.
+     */
     checkSyncStatus(syncId) {
         const INTERVAL = 3000; // Interval between checks in ms
         const MAX_CHECKS = 20;
