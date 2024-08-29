@@ -19,5 +19,5 @@ const INTEGTATION_CONFIG = {
     },
 
     // Timeout for acquiring doc lock in ms
-    lockTimeout: 10000  
+    lockTimeout: 90000
 }

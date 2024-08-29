@@ -11,27 +11,34 @@
  */
 function syncWithGridly() {
     // Use lock to ensure no parallel sync execution running
-    const lock = LockService.getDocumentLock();
-    if (lock.tryLock(INTEGTATION_CONFIG.lockTimeout)) {
-        sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
-        sheetName = sheet.getName();
+    const lock = LockService.getScriptLock();
+    try {
+        if (lock.tryLock(INTEGTATION_CONFIG.lockTimeout)) {
+            sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+            sheetName = sheet.getName();
 
-        // Find the corresponding Connection ID by the sheet name
-        const connectionId = getConnectionId(sheetName);
+            // Find the corresponding Connection ID by the sheet name
+            const connectionId = getConnectionId(sheetName);
 
-        if (connectionId) {
-            const gridlyWrapper = new GridlyWrapper(GRIDLY_API_CONFIG);
+            if (connectionId) {
+                const gridlyWrapper = new GridlyWrapper(GRIDLY_API_CONFIG);
 
-            console.info(`Starting sync for sheet: ${sheetName}, connectionId: ${connectionId}`);
-            gridlyWrapper.sync(connectionId);
+                console.info(`Starting sync for sheet: ${sheetName}, connectionId: ${connectionId}`);
+                gridlyWrapper.sync(connectionId);
+            } else {
+                console.warn(`No connection ID found for the edited sheet: ${sheetName}`);
+            }
+            
         } else {
-            console.warn(`No connection ID found for the edited sheet: ${sheetName}`);
+            throw new Error(`Timeout while acquiring lock. ` +
+            `Another execution must be already running on this doc for more then ${INTEGTATION_CONFIG.lockTimeout} ms`);
         }
-
+    } catch (error) {
+        console.error(`Sync failed. Error: ${error}`);
+        throw error;
+    } finally {
         SpreadsheetApp.flush();
         lock.releaseLock();
-    } else {
-        console.warn("Could not acquire lock. Another execution must be already running on this doc.");
     }
 }
 
